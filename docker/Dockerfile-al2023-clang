@@ -1,0 +1,56 @@
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023-minimal
+#FROM amazonlinux:2.0.20240306.2
+RUN dnf -y update && \
+    dnf -y install git && \
+    dnf -y install wget && \
+    dnf -y install binutils && \
+    dnf -y install gcc && \
+    dnf -y install gcc-c++ && \
+    dnf -y install libtool && \
+    dnf -y install make && \
+    dnf -y install gdb && \
+    dnf -y install openssl openssl-devel && \
+    dnf -y install zip && \
+    dnf -y install libcurl-devel && \
+    dnf -y install libuuid-devel && \
+    dnf -y install openssh-server && \
+    dnf -y install python3 && \
+    dnf  clean all && \
+    mkdir /var/run/sshd && \
+    echo 'root:aws' | chpasswd && \
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i '/#PermitRootLogin prohibit-password/i PermitRootLogin yes' /etc/ssh/sshd_config && \
+    sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd && \
+    ssh-keygen -t rsa -b 4096 -f ssh_host_rsa_key && \
+    cp ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key && \
+    cd /opt && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.29.0/cmake-3.29.0.tar.gz && \
+    tar -zxvf cmake-3.29.0.tar.gz && \
+    cd cmake-3.29.0 && \
+    ./bootstrap && \
+    make 
+RUN cd /opt/cmake-3.29.0 && \
+    make install 
+RUN cmake --version && \
+    cd /opt && \
+    rm cmake-3.29.0.tar.gz && \
+    rm -rf cmake-3.29.0 && \
+    cd /opt && \
+    git clone https://github.com/llvm/llvm-project.git && \
+    cd llvm-project && \
+    git checkout llvmorg-18.1.2 && \
+    mkdir build && \
+    cd build && \
+    cmake -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" LLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf llvm-project && \
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+RUN sed -i '/#PermitRootLogin prohibit-password/i PermitRootLogin yes' /etc/ssh/sshd_config
+
+ENV C=/usr/local/bin/clang
+ENV CC=/usr/local/bin/clang++
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]

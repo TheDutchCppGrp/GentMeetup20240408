@@ -1,0 +1,17 @@
+FROM hk/aws-al2023-sdk-cpp:1.11.292
+
+ARG CC=/usr/local/bin/clang
+ARG CXX=/usr/local/bin/clang++
+
+RUN dnf install -y libpng libpng-devel libjpeg libjpeg-devel && \
+    dnf clean all && \
+    git clone https://github.com/opencv/opencv && \
+    git -C opencv checkout 4.8.0 && \
+    cd opencv && \
+    mkdir build && \
+    cd build && \
+    cmake -DBUILD_SHARED_LIBS=off -DWITH_JPEG=ON -DWITH_PNG=ON -DCMAKE_BUILD_TYPE=Release .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf opencv

@@ -1,0 +1,26 @@
+FROM hk/aws-al2023-lambda-cpp:0.2.10
+
+ARG CC=/usr/local/bin/clang
+ARG CXX=/usr/local/bin/clang++
+
+RUN dnf -y update && \
+    dnf -y install rsync openssl-libs curl-devel libcurl-devel openssl-devel zlib-devel zlib-static libuuid-devel pulseaudio-libs-devel && \
+    curl -sL https://rpm.nodesource.com/setup_20.x | bash - && \
+    dnf -y install nodejs && \
+    dnf clean all && \
+    node -v && \
+    npm -v && \
+    npm install -g typescript && \
+    npm install -g aws-cdk && \
+    mkdir -p /tmp/aws-sdk-cpp && \
+    cd /tmp/ && \    
+    git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git && \
+    cd aws-sdk-cpp && \
+    git checkout 1.11.292 && \
+    mkdir build && \
+    cd build && \
+    cmake ../ -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF -DCPP_STANDARD=17 -DENABLE_TESTING=OFF && \
+    make -j4 && \
+    make install && \
+    cd /tmp && \
+    rm -rf aws-sdk-cpp
